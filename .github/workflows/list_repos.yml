@@ -1,0 +1,22 @@
+name: List Repositories only
+
+on:
+  workflow_dispatch:
+    inputs:
+      repositories:
+        description: 'List of repositories to process'
+        required: true
+        default: 'mgm rcx spwy' # Default value, you can modify or remove this
+
+jobs:
+  list_repos:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Display Input Repositories
+      run: |
+        echo "Input Repositories: ${{ github.event.inputs.repositories }}"
+        IFS=' ' read -r -a repo_array <<< "${{ github.event.inputs.repositories }}"
+        for repo in "${repo_array[@]}"; do
+          echo "  - Repository: $repo"
+        done
