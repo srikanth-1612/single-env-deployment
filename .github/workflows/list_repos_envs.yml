@@ -1,0 +1,47 @@
+name: List Repositories with its Environments
+
+on:
+  workflow_dispatch:
+
+jobs:
+  list_repos:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install GitHub CLI
+      run: sudo apt-get install gh -y
+
+    - name: Authenticate with GitHub CLI
+      run: echo "${{ secrets.PAT }}" | gh auth login --with-token
+
+    - name: List Repositories
+      id: list_repos
+      run: |
+        user=$(gh api user --jq '.login')
+        repos=$(gh api --header "Authorization: token ${{ secrets.TOKEN }}" /users/$user/repos --jq '.[].name')
+        echo "repositories=$(echo $repos | tr '\n' ' ')" >> $GITHUB_ENV
+
+    - name: Display Repositories and Environments
+      run: |
+        repos="${{ env.repositories }}"
+        echo "Repositories: $repos"
+        IFS=' ' read -r -a repo_array <<< "$repos"
+        
+        for repo in "${repo_array[@]}"; do
+          echo "Repository: $repo"
+          environments=$(gh api --header "Authorization: token ${{ secrets.TOKEN }}" /repos/$user/$repo/environments --jq '.environments[].name')
+          if [ -z "$environments" ]; then
+            echo "  No environments found."
+          else
+            echo "Environments in $repo:"
+            IFS=$'\n' read -r -a env_array <<< "$environments"
+            for env in "${env_array[@]}"; do
+              echo "  - Environment: $env"
+            done
+          fi
+        done
+      env:
+        repositories: ${{ steps.list_repos.outputs.repositories }}
