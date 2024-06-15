@@ -6,7 +6,12 @@ on:
       repositories:
         description: 'List of repositories to process'
         required: true
-        default: 'mgm rcx spwy' # Default value, you can modify or remove this
+        default: 'dev'
+        type: choice
+        options:
+          - MGM
+          - CMG
+          - SPW
 
 jobs:
   list_repos:
