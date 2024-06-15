@@ -1,27 +1,58 @@
-name: List Repositories only
+name: Deploy Based on Environment
 
 on:
   workflow_dispatch:
     inputs:
-      repositories:
-        description: 'List of repositories to process'
+      repository:
+        description: 'Repository to deploy'
         required: true
-        default: 'dev'
         type: choice
         options:
           - MGM
           - CMG
           - SPW
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - Dev
+          - Test
+          - Prod
 
 jobs:
-  list_repos:
+  deploy_based_on_environment:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Display Input Repositories
+    - name: Display Input Repository and Environment
       run: |
-        echo "Input Repositories: ${{ github.event.inputs.repositories }}"
-        IFS=' ' read -r -a repo_array <<< "${{ github.event.inputs.repositories }}"
-        for repo in "${repo_array[@]}"; do
-          echo "  - Repository: $repo"
-        done
+        echo "Input Repository: ${{ github.event.inputs.repository }}"
+        echo "Input Environment: ${{ github.event.inputs.environment }}"
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Execute Deployment
+      run: |
+        repository="${{ github.event.inputs.repository }}"
+        environment="${{ github.event.inputs.environment }}"
+
+        case $environment in
+          Dev)
+            echo "Running deploy_dev for $repository"
+            # Replace with your deploy_dev job steps
+            ;;
+          Test)
+            echo "Running deploy_test for $repository"
+            # Replace with your deploy_test job steps
+            ;;
+          Prod)
+            echo "Running deploy_prod for $repository"
+            # Replace with your deploy_prod job steps
+            ;;
+          *)
+            echo "Invalid environment selected: $environment"
+            exit 1
+            ;;
+        esac
