@@ -1,0 +1,30 @@
+name: List Repositories 
+
+on:
+  workflow_dispatch:
+
+jobs:
+  list_repos:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use GitHub CLI
+      run: sudo apt-get install gh -y
+
+    - name: Authenticate with GitHub CLI
+      run: echo "${{ secrets.TOKEN }}" | gh auth login --with-token
+
+    - name: List Repositories
+      id: get_repos
+      run: |
+        gh repo list --json | jq -r '.[].name'
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+    - name: Store Repositories as Output
+      run: |
+        echo "repos=$(echo ${{ steps.get_repos.outputs }})" >> $GITHUB_ENV
+
+    - name: Display Repositories
+      run: |
+        echo "Listed Repositories:"
+        echo "${{ env.repos }}"
