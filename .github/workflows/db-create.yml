@@ -23,6 +23,12 @@ jobs:
 
     - name: Create MySQL Database
       run: |
-        DB_NAME="my_database"
-        # mysql -s -h $DB_HOST -u$DEV05_ADMIN_USER -p${{ secrets.DEV05_ADMIN_PASSWORD }} -sNe "CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8;"
-        mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }}  -sNe "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
+        create_db () {
+          echo "creating database $1"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }}  -sNe "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
+          echo "grant access to $2 at db $1"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%';"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
+          }
