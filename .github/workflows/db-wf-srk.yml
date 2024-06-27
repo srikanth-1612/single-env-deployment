@@ -17,9 +17,6 @@ env:
 jobs:
   create-database:
     runs-on: ubuntu-latest
-    env:
-      RANDOM_PASSWORD: ${{ secrets.RANDOM_PASSWORD }}  # Define the secret for RANDOM_PASSWORD
-
     steps:
     - name: Generate Random Password
       id: generate-password
