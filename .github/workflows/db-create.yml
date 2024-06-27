@@ -31,31 +31,31 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Create MySQL Database
-  run: |
-    create_db () {
-      DB_NAME=$1
-      DB_USER=$2
-      DB_PASSWORD=$3
-      echo "Creating database $1..."
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;" && \
-      echo "Database $1 created successfully" || \
-      echo "Failed to create database $1"
+      run: |
+        create_db () {
+          DB_NAME=$1
+          DB_USER=$2
+          DB_PASSWORD=$3
+          echo "Creating database $1..."
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;" && \
+          echo "Database $1 created successfully" || \
+          echo "Failed to create database $1"
       
-      echo "Creating user $2..."
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
+          echo "Creating user $2..."
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
       
-      echo "Granting access to $2 for database $1..."
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';" && \
-      echo "Granted access to $2 for database $1" || \
-      echo "Failed to grant access to $2 for database $1"
+          echo "Granting access to $2 for database $1..."
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';" && \
+          echo "Granted access to $2 for database $1" || \
+          echo "Failed to grant access to $2 for database $1"
       
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
       
-      echo "Showing current databases:"
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES;"
+          echo "Showing current databases:"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES;"
       
-      echo "Showing grants for user $2:"
-      mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$2'@'%';"
-    }
+          echo "Showing grants for user $2:"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$2'@'%';"
+        }
 
-    create_db ${{ github.event.inputs.1 }} ${{ github.event.inputs.2 }} "${{ steps.generate-password.outputs.password }}"
+        create_db ${{ github.event.inputs.1 }} ${{ github.event.inputs.2 }} "${{ steps.generate-password.outputs.password }}"
