@@ -25,8 +25,7 @@ jobs:
       id: generate-password
       run: |
         RANDOM_PASSWORD=$(openssl rand -hex 8)
-        echo "::set-env name=RANDOM_PASSWORD::${RANDOM_PASSWORD}"
-        echo "RANDOM_PASSWORD=${RANDOM_PASSWORD}" >> $GITHUB_ENV
+        echo "DB_PASSWORD=${RANDOM_PASSWORD}" >> $GITHUB_ENV
         echo "::set-output name=password::${RANDOM_PASSWORD}"
     
     - name: Checkout code
