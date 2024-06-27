@@ -1,0 +1,28 @@
+name: Create MySQL DB
+on:
+  workflow_dispatch:
+    inputs:
+      DB_NAME:
+        description: 'Database name'
+        required: true
+      DB_USER:
+        description: 'Database user'
+        required: true
+      
+env:
+  DB_HOST: database-1.cnukgc80kf4a.ap-southeast-1.rds.amazonaws.com
+  DEV05_ADMIN_USER: admin
+     
+
+jobs:
+  create-database:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create MySQL Database
+      run: |
+        DB_NAME="my_database"
+        # mysql -s -h $DB_HOST -u$DEV05_ADMIN_USER -p${{ secrets.DEV05_ADMIN_PASSWORD }} -sNe "CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8;"
+        mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }}  -sNe "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
