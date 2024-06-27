@@ -24,7 +24,10 @@ jobs:
         RANDOM_PASSWORD=$(openssl rand -hex 8)
         echo "DB_PASSWORD=${RANDOM_PASSWORD}" >> $GITHUB_ENV
         echo "::set-output name=password::${RANDOM_PASSWORD}"
-    
+
+      env:
+        RANDOM_PASSWORD: $(openssl rand -hex 8)
+        
     - name: Checkout code
       uses: actions/checkout@v2
 
@@ -54,6 +57,9 @@ jobs:
           
           echo "Showing grants for user $DB_USER:"
           mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$DB_USER'@'%';"
-        }
 
+          # Additional check to verify user and password
+          echo "Verifying user '$DB_USER' and password in MySQL..."
+          mysql -s -N -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SELECT user, host FROM mysql.user WHERE user = '$DB_USER' AND host = '%';"
+        }
         create_db ${{ github.event.inputs.DB_NAME }} ${{ github.event.inputs.DB_USER }} "${{ env.RANDOM_PASSWORD }}"
