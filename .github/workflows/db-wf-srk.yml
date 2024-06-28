@@ -1,4 +1,4 @@
-name: Create MySQL DB with dynamic passwd
+name: Create MySQL DB
 
 on:
   workflow_dispatch:
@@ -24,35 +24,46 @@ jobs:
         RANDOM_PASSWORD=$(openssl rand -hex 3)
         echo "DB_PASSWORD=${RANDOM_PASSWORD}" >> $GITHUB_ENV
         echo "::set-output name=password::${RANDOM_PASSWORD}"
-        
+
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Create MySQL Database
+    - name: Create MySQL Database and User
       run: |
         create_db () {
           DB_NAME=$1
           DB_USER=$2
           DB_PASSWORD=$3
+
           echo "Creating database $DB_NAME..."
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8;" && \
-          echo "Database $DB_NAME created successfully" || \
-          echo "Failed to create database $DB_NAME"
-          
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8;"; then
+            echo "Database $DB_NAME created successfully"
+          else
+            echo "Failed to create database $DB_NAME"
+            exit 1
+          fi
+
           echo "Creating user $DB_USER..."
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';"
-          
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$DB_USER'@'%'; CREATE USER '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';"; then
+            echo "User $DB_USER created successfully"
+          else
+            echo "Failed to create user $DB_USER"
+            exit 1
+          fi
+
           echo "Granting access to $DB_USER for database $DB_NAME..."
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';" && \
-          echo "Granted access to $DB_USER for database $DB_NAME" || \
-          echo "Failed to grant access to $DB_USER for database $DB_NAME"
-          
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
-          
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;"; then
+            echo "Granted access to $DB_USER for database $DB_NAME"
+          else
+            echo "Failed to grant access to $DB_USER for database $DB_NAME"
+            exit 1
+          fi
+
           echo "Showing current databases:"
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES;"
-          
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES;"
+
           echo "Showing grants for user $DB_USER:"
-          mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$DB_USER'@'%';"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$DB_USER'@'%';"
         }
-        create_db ${{ github.event.inputs.DB_NAME }} ${{ github.event.inputs.DB_USER }} "${{ env.RANDOM_PASSWORD }}"
+
+        create_db ${{ github.event.inputs.DB_NAME }} ${{ github.event.inputs.DB_USER }} ${{ steps.generate-password.outputs.password }}
