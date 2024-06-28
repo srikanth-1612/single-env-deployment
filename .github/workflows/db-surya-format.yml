@@ -1,0 +1,82 @@
+name: Create MySQL DB (Surya format)
+
+on:
+  workflow_dispatch:
+    inputs:
+      DB_NAME:
+        description: 'Database name'
+        required: true
+      DB_USER:
+        description: 'Database user'
+        required: true
+
+env:
+  DB_HOST: database-1.cnukgc80kf4a.ap-southeast-1.rds.amazonaws.com
+  DEV05_ADMIN_USER: admin
+
+jobs:
+  create-database:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate Random Password
+      id: generate-password
+      run: |
+        RANDOM_PASSWORD=$(openssl rand -hex 3)
+        echo "DB_PASSWORD=${RANDOM_PASSWORD}" >> $GITHUB_ENV
+        echo "::set-output name=password::${RANDOM_PASSWORD}"
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create MySQL Database and User
+      run: |
+        create_db () {
+          DB_NAME=$1
+          DB_USER=$2
+          DB_PASSWORD=$3
+          
+          echo "Creating database $1..."
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"; then
+            echo "Database $1 created successfully"
+          else
+            echo "Failed to create database $1"
+            exit 1
+          fi
+          
+          echo "Creating user $2..."
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%'; CREATE USER '$2'@'%' IDENTIFIED BY '$DB_PASSWORD';"; then
+            echo "User $2 created successfully"
+          else
+            echo "Failed to create user $2"
+            exit 1
+          fi
+          
+          echo "Granting access to $2 for database $1..."
+          if mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%'; FLUSH PRIVILEGES;"; then
+            echo "Granted access to $2 for database $1"
+          else
+            echo "Failed to grant access to $2 for database $1"
+            exit 1
+          fi
+          
+          echo "Showing current databases:"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES;"
+          
+          echo "Showing grants for user $2:"
+          mysql -s -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW GRANTS FOR '$2'@'%';"
+        }
+        
+        populate_db () {
+          BACKUP_FILE=$1
+          DB_NAME=$2
+          echo "Populating database $2 from backup file path: $1"
+          mysql -h ${{env.DB_HOST}} -u${{env.DEV05_ADMIN_USER}} -p${{env.DEV05_ADMIN_PASSWORD}} $2 < $1
+        }
+
+        # Generate random password for the user
+        DB_PASSWORD=${{ steps.generate-password.outputs.password }}
+
+        # Create databases
+        create_db ${{ github.event.inputs.DB_NAME }}_am ${{ github.event.inputs.DB_USER }} $DB_PASSWORD
+        create_db ${{ github.event.inputs.DB_NAME }}_pm ${{ github.event.inputs.DB_USER }} $DB_PASSWORD
+        create_db ${{ github.event.inputs.DB_NAME }}_bm ${{ github.event.inputs.DB_USER }} $DB_PASSWORD
+        create_db ${{ github.event.inputs.DB_NAME }}_cms ${{ github.event.inputs.DB_USER }} $DB_PASSWORD
