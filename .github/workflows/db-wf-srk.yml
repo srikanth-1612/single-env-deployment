@@ -1,4 +1,4 @@
-name: Create MySQL DB
+name: Create MySQL DB with dynamic password
 
 on:
   workflow_dispatch:
