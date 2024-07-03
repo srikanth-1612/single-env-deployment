@@ -38,19 +38,10 @@ jobs:
             DB_EXISTS=$(mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES LIKE '$db_name';")
 
             if [ -n "$DB_EXISTS" ]; then
-              echo "The defined database $db_name is already exists. So, Exiting job."
+              echo "The defined database: $db_name is already exists. So, existing password can not be updated..."
               exit 1
             else
-              echo "Creating database $db_name.."
-              echo "Checking user: $db_user.."
-
-              USER_EXISTS=$(mysql -s -N -h $DB_HOST -u$ADMIN_USER -p$ADMIN_PASSWORD -e "SELECT EXISTS(SELECT 1 FROM information_schema.USER_PRIVILEGES WHERE GRANTEE LIKE CONCAT('%', '$db_user', '%') AND TABLE_SCHEMA = '$db_name');")
-
-              if [ "$USER_EXISTS" = "1" ]; then
-                echo "The User $db_user is already exists, So existing password can not be updated.."
-                exit 1
-              else
-                echo "The database & user are not exists. So creating database with name $db_name and creating user $db_user with new password.."
+              echo "The database is not available, So creating database with name $db_name and creating user $db_user with new password.."
 
                 mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
                 mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%';"
@@ -64,7 +55,7 @@ jobs:
           # Loop through each suffix to create databases and user
           DB_USER="${{ inputs.deploy_env }}_user"
           DB_PASSWORD="${{ steps.gen_passwd.outputs.password }}"
-          for suffix in pm bm cms; do
+          for suffix in bm cms; do
             DB_NAME="${{ inputs.deploy_env }}_${suffix}"
             create_db_user "${DB_NAME}" "${DB_USER}" "${DB_PASSWORD}"
           done
