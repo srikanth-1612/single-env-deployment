@@ -64,7 +64,7 @@ jobs:
           # Loop through each suffix to create databases and user
           DB_USER="${{ inputs.deploy_env }}_user"
           DB_PASSWORD="${{ steps.gen_passwd.outputs.password }}"
-          for suffix in am pm bm cms; do
+          for suffix in am pm; do
             DB_NAME="${{ inputs.deploy_env }}_${suffix}"
             create_db_user "${DB_NAME}" "${DB_USER}" "${DB_PASSWORD}"
           done
