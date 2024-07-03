@@ -33,13 +33,32 @@ jobs:
             db_user=$2
             db_password=$3
 
-            echo "Creating database $db_name and user $db_user"
+            echo "Checking the database named: $db_name"
 
-            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
-            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%';"
-            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
-            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';"
-            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
+            DB_EXISTS=$(mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SHOW DATABASES LIKE '$db_name';")
+
+            if [ -n "$DB_EXISTS" ]; then
+              echo "The defined database $db_name is already exists. So, Exiting job."
+              exit 1
+            else
+              echo "Creating database $db_name.."
+              echo "Checking user named: $db_user.."
+
+              USER_EXISTS=$(mysql -s -N -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '$db_user');")
+
+              if [ "$USER_EXISTS" = "1" ]; then
+                echo "The User $db_user is already exists, So existing password can not be updated.."
+                exit 1
+              else
+                echo "The database & user are not exists. So creating database with name $db_name and creating user $db_user with new password $db_password.."
+
+                mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
+                mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%';"
+                mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
+                mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';"
+                mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
+              fi
+            fi
           }
 
           # Loop through each suffix to create databases and user
@@ -53,7 +72,19 @@ jobs:
       - name: Push values to AWS Parameter Store
         shell: bash
         run: |
-            for suffix in am pm bm cms; do
-              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/${suffix}DatabaseUser" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
-              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/${suffix}DatabasePassword" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
+            for suffix in am; do
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/AmMysqlUsername" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/AmMysqlPassword" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
+            done
+            for suffix in pm; do
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/cc_username" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/cc_password" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
+            done
+            for suffix in bm; do
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/infra/input/mysql_username" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/infra/input/mysql_password" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
+            done
+            for suffix in cms; do
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/CmsMysqlUsername" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/CmsMysqlPassword" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
             done
