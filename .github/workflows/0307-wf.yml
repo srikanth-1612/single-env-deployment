@@ -1,0 +1,59 @@
+name: Create MySQL DB and User
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: 'Environment name'
+        type: environment
+
+env:
+  DB_HOST: database-1.cnukgc80kf4a.ap-southeast-1.rds.amazonaws.com
+  DEV05_ADMIN_USER: admin
+
+jobs:
+  create-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate password
+        id: gen_passwd
+        shell: bash
+        run: |
+          password=$(openssl rand -base64 16)
+          echo "::set-output name=password::$password"
+
+      - name: Create MySQL Databases and User
+        id: create-databases-user
+        run: |
+          create_db_user () {
+            db_name=$1
+            db_user=$2
+            db_password=$3
+
+            echo "Creating database $db_name and user $db_user"
+
+            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS $1 DEFAULT CHARACTER SET utf8;"
+            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "DROP USER IF EXISTS '$2'@'%';"
+            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "CREATE USER '$2'@'%' IDENTIFIED BY '$3';"
+            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "GRANT ALL PRIVILEGES ON $1.* TO '$2'@'%';"
+            mysql -s -h ${{ env.DB_HOST }} -u${{ env.DEV05_ADMIN_USER }} -p${{ secrets.DEV05_ADMIN_PASSWORD }} -e "FLUSH PRIVILEGES;"
+          }
+
+          # Loop through each suffix to create databases and user
+          DB_USER="${{ inputs.deploy_env }}_user"
+          DB_PASSWORD="${{ steps.gen_passwd.outputs.password }}"
+          for suffix in am pm bm cms; do
+            DB_NAME="${{ inputs.deploy_env }}_${suffix}"
+            create_db_user "${DB_NAME}" "${DB_USER}" "${DB_PASSWORD}"
+          done
+
+      - name: Push values to AWS Parameter Store
+        shell: bash
+        run: |
+            for suffix in am pm bm cms; do
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/${suffix}DatabaseUser" --type "String" --value "${{ inputs.deploy_env }}_user" --overwrite
+              aws ssm put-parameter --region us-east-1 --name "/${{ inputs.deploy_env }}/${suffix}/config/${suffix}DatabasePassword" --type "SecureString" --value "${{ steps.gen_passwd.outputs.password }}" --overwrite
+            done
