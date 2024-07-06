@@ -3,7 +3,7 @@ name: CFN Workflow
 on:
   workflow_call:
     inputs:
-      env_name:
+      deploy_env:
         description: enviornment name
         type: string
   workflow_dispatch:
