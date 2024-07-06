@@ -20,7 +20,7 @@ on:
 
 jobs:
   validate:
-    uses: srikanth-1612/reusable-workflows/.github/workflows/ampm.yml@master
+    uses: srikanth-1612/.github/workflows/ampm.yml@master
     secrets: inherit
 
   deploy:
