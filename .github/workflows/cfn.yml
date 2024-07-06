@@ -1,6 +1,11 @@
 name: CFN Workflow
 
 on:
+  workflow_call:
+    inputs:
+      env_name:
+        description: enviornment name
+        type: string
   workflow_dispatch:
     inputs:
       env_name:
