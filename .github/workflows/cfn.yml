@@ -1,24 +1,22 @@
 name: CFN Workflow
 
 on:
+  workflow_call:
+    inputs:
+      deploy_env:
+        description: enviornment name
+        type: string
   workflow_dispatch:
     inputs:
-      env_name:
-        description: 'Environment name'
-        required: true
-        type: string
-      agent:
-        description: 'Agent'
-        required: true
-        type: choice
-        options:
-          - ecs
-          - master
-          - UI_Docker
-          - prod_node
-          - any
+      deploy_env:
+        description: enviornment name
+        type: environment
 
 jobs:
+  validate:
+    uses: srikanth-1612/reusable-workflows/.github/workflows/ampm.yml@master
+    secrets: inherit
+
   deploy:
     runs-on: ubuntu-latest
 
