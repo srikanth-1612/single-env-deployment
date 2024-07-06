@@ -1,33 +1,11 @@
-name: CFN Workflow
+name: Deploy S3 Bucket via CloudFormation
 
 on:
-  workflow_call:
-    inputs:
-      env_name:
-        description: enviornment name
-        type: string
-  workflow_dispatch:
-    inputs:
-      Environment:
-        description: 'Environment name'
-        required: true
-        type: string
-      agent:
-        description: 'Agent'
-        required: true
-        type: choice
-        options:
-          - ecs
-          - master
-          - UI_Docker
-          - prod_node
-          - any
+  push:
+    branches:
+      - main
 
 jobs:
-  validate:
-    uses: srikanth-1612/single-env-deployment/.github/workflows/ampm.yml@main
-    secrets: inherit
-
   deploy:
     runs-on: ubuntu-latest
 
@@ -35,7 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Deployment Step
+      - name: Validate CloudFormation template
+        uses: srikanth-1612/reusable-workflows/.github/workflows/merging-checks.yml@main
+        with:
+          template-path: s3-bucket.yml
+
+      - name: Deploy CloudFormation stack
         run: |
-          echo "Running deployment for env_name: ${{ github.event.inputs.Environment }} and agent: ${{ github.event.inputs.agent }}"
-          # Your deployment logic here
+          aws cloudformation deploy \
+            --template-file path/to/your/s3-bucket.yml \
+            --stack-name MyS3BucketStack \
+            --capabilities CAPABILITY_NAMED_IAM
+          # Optionally, wait for the deployment to complete
+          aws cloudformation wait stack-create-complete --stack-name MyS3BucketStack
