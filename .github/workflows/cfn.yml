@@ -3,12 +3,12 @@ name: CFN Workflow
 on:
   workflow_call:
     inputs:
-      deploy_env:
+      env_name:
         description: enviornment name
         type: string
   workflow_dispatch:
     inputs:
-      env_name:
+      Environment:
         description: 'Environment name'
         required: true
         type: string
@@ -37,5 +37,5 @@ jobs:
 
       - name: Deployment Step
         run: |
-          echo "Running deployment for env_name: ${{ github.event.inputs.env_name }} and agent: ${{ github.event.inputs.agent }}"
+          echo "Running deployment for env_name: ${{ github.event.inputs.Environment }} and agent: ${{ github.event.inputs.agent }}"
           # Your deployment logic here
