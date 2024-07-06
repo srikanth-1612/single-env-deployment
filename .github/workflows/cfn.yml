@@ -1,9 +1,17 @@
 name: Deploy S3 Bucket via CloudFormation
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      deploy_env:
+        description: enviornment name
+        type: string
+        
+  workflow_dispatch:
+    inputs:
+      stack_name:
+        description: stack name
+        type: string
 
 jobs:
   validate:
@@ -22,8 +30,8 @@ jobs:
       - name: Deploy CloudFormation stack
         run: |
           aws cloudformation deploy \
-            --template-file path/to/your/s3-bucket.yml \
-            --stack-name MyS3BucketStack \
+            --template-file s3-bucket.yml \
+            --stack-name ${{ inputs.stack_name }} \
             --capabilities CAPABILITY_NAMED_IAM
           # Optionally, wait for the deployment to complete
-          aws cloudformation wait stack-create-complete --stack-name MyS3BucketStack
+          aws cloudformation wait stack-create-complete --stack-name ${{ inputs.stack_name }}
