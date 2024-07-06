@@ -6,12 +6,6 @@ on:
       stack_name:
         description: enviornment name
         type: string
-        
-  workflow_dispatch:
-    inputs:
-      stack_name:
-        description: stack name
-        type: string
 
 jobs:
   validate:
