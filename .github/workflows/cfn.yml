@@ -1,16 +1,22 @@
 name: CFN Workflow
 
 on:
-  workflow_call:
-    inputs:
-      env_name:
-        description: enviornment name
-        type: string
   workflow_dispatch:
     inputs:
-      deploy_env:
-        description: enviornment name
-        type: environment
+      env_name:
+        description: 'Environment name'
+        required: true
+        type: string
+      agent:
+        description: 'Agent'
+        required: true
+        type: choice
+        options:
+          - ecs
+          - master
+          - UI_Docker
+          - prod_node
+          - any
 
 jobs:
   validate:
