@@ -42,5 +42,11 @@ jobs:
                 }'
 
       - name: Running deploy statement
+        if: success()
         run: |
           echo "This is running after the cloudformation workflow succeeded"
+
+      - name: Workflow failed statement
+        if: failure()
+        run: |
+          echo "The cloudformation workflow failed"
