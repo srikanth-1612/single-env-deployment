@@ -1,0 +1,32 @@
+name: CFN Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      env_name:
+        description: 'Environment name'
+        required: true
+        type: string
+      agent:
+        description: 'Agent'
+        required: true
+        type: choice
+        options:
+          - ecs
+          - master
+          - UI_Docker
+          - prod_node
+          - any
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deployment Step
+        run: |
+          echo "Running deployment for env_name: ${{ github.event.inputs.env_name }} and agent: ${{ github.event.inputs.agent }}"
+          # Your deployment logic here
