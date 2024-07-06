@@ -36,8 +36,7 @@ jobs:
             -d '{
                   "ref": "main",
                   "inputs": {
-                    "env_name": "${{ github.event.inputs.env_name }}",
-                    "agent": "${{ github.event.inputs.agent }}"
+                    "stack_name": "${{ github.event.inputs.env_name }}-${{ github.event.inputs.agent }}"
                   }
                 }'
 
