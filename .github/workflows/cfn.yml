@@ -3,7 +3,7 @@ name: Deploy S3 Bucket via CloudFormation
 on:
   workflow_call:
     inputs:
-      deploy_env:
+      stack_name:
         description: enviornment name
         type: string
         
