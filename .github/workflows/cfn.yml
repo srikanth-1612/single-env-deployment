@@ -42,3 +42,4 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM
           # Optionally, wait for the deployment to complete
           aws cloudformation wait stack-create-complete --stack-name ${{ inputs.stack_name }}
+          aws cloudformation describe-stack-events --stack-name ${{ inputs.stack_name }}
