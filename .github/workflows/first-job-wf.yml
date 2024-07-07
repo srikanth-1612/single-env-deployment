@@ -61,10 +61,7 @@ jobs:
             -d '{
                   "ref": "main",
                   "inputs": {
-                    "deploy_env": "${{ github.event.inputs.Environment }}",
-                    "stack_name": "${{ github.event.inputs.stack_name }}",
-                    "SWAGGER_BRANCH_TAG": "${{ github.event.inputs.SWAGGER_BRANCH_TAG }}",
-                    "AGENT": "${{ github.event.inputs.AGENT }}"
+                    "deploy_env": "${{ github.event.inputs.Environment }}"
                   }
                 }'
         env:
