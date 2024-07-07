@@ -16,6 +16,8 @@ on:
 jobs:
   validate:
     uses: srikanth-1612/reusable-workflows/.github/workflows/merging-checks.yml@main
+    with:
+      trigger_job: 'deploy validation'
     secrets: inherit
     
   deploy:
