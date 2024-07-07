@@ -2,4 +2,4 @@ Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: my-unique-bucket-name
+      BucketName: my-cfh-swy-mgm-bucket
