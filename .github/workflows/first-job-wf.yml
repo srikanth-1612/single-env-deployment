@@ -73,7 +73,7 @@ jobs:
 
   deploy:
     needs: set-agent
-    runs-on: ${{ env.agent }}
+    runs-on: ${{ needs.set-agent.outputs.selected-agent }}
     steps:
       - name: Deploy CloudFormation stack
         id: Running_script
