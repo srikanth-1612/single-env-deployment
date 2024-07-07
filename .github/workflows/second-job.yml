@@ -1,0 +1,44 @@
+name: Deploy S3 Bucket via CloudFormation
+
+on:
+  workflow_call:
+    inputs:
+      deploy_env:
+        description: enviornment name
+        type: string
+        
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: enviornment name
+        type: string
+
+jobs:
+  validate:
+    uses: srikanth-1612/reusable-workflows/.github/workflows/merging-checks.yml@main
+    with:
+      trigger_job: 'deploy validation'
+    secrets: inherit
+    
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          template-path: s3-bucket.yml
+
+      - name: Deploy CloudFormation stack
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-southeast-1
+        run: |
+          set -ex
+          aws cloudformation deploy \
+            --template-file s3-bucket.yml \
+            --stack-name ${{ inputs.deploy_env }} \
+            --capabilities CAPABILITY_NAMED_IAM
+          # Optionally, wait for the deployment to complete
+          aws cloudformation wait stack-create-complete --stack-name ${{ inputs.deploy_env }}
