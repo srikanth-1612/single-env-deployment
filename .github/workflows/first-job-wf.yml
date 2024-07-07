@@ -1,0 +1,122 @@
+name: Workflow to run first jenkins job
+
+on:
+  workflow_dispatch:
+    inputs:
+      Environment:
+        description: 'Specify the environment'
+        required: true
+        type: string
+        default: ''
+      stack_name:
+        description: 'Specify the stack_name'
+        required: true
+        type: string
+        default: ''
+      SWAGGER_BRANCH_TAG:
+        description: 'Specify the swagger_branch_tag'
+        required: true
+        type: string
+        default: 'master'
+      AGENT:
+        description: 'Specify the agent'
+        required: true
+        default: 'master'
+        type: choice
+        options:
+        - ecs
+        - master
+        - UI_Docker
+        - prod_node
+        - any
+
+jobs:
+  set-agent:
+    runs-on: ubuntu-latest # here you have to change as per your actual runners
+    outputs:
+      selected-agent: ${{ steps.set-agent.outputs.agent }}
+    steps:
+      - name: Set Agent
+        id: set-agent
+        run: |
+          if [[ "${{ github.event.inputs.AGENT }}" == "any" ]]; then
+            echo "agent=ubuntu-latest" >> $GITHUB_ENV
+          else
+            echo "agent=${{ github.event.inputs.AGENT }}" >> $GITHUB_ENV
+          fi  
+    
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Copying Swagger
+        id: trigger_deployment
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/cfn.yml/dispatches \
+
+            -d '{
+                  "ref": "main",
+                  "inputs": {
+                    "deploy_env": "${{ github.event.inputs.Environment }}",
+                    "stack_name": "${{ github.event.inputs.stack_name }}",
+                    "SWAGGER_BRANCH_TAG": "${{ github.event.inputs.SWAGGER_BRANCH_TAG }}",
+                    "AGENT": "${{ github.event.inputs.AGENT }}"
+                  }
+                }'
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+
+      - name: Print Result
+        run: echo "Triggered deployment workflow"
+
+  deploy:
+    needs: set-agent
+    runs-on: ${{ env.agent }}
+    steps:
+      - name: Deploy CloudFormation stack
+        id: Running_script
+        run: |  
+          export AWS_DEFAULT_REGION=us-east-1
+          deploy_env=${{ github.event.inputs.Environment }}
+          stack_name=${{ github.event.inputs.stack_name }}
+          AGENT=${{ github.event.inputs.AGENT }}
+
+          if [ $AGENT == "ecs" ]; then 
+            TemplateBucket="cybercube-configs"
+          else 
+            TemplateBucket="cybcube-cfg"
+          fi
+
+          echo "the chosen agent is $AGENT"
+          
+          aws s3api head-object --bucket $TemplateBucket --key $deploy_env/main.yml || not_exist=true
+
+          if [ $not_exist ]; then
+            python3 /opt/jenkins/scripts/consul/deploy_cf.py deploy-stack $deploy_env ampm $stack_name portfoliomanager $TemplateBucket main.yml pm
+          else
+            python3 /opt/jenkins/scripts/consul/deploy_cf.py deploy-stack $deploy_env ampm $stack_name portfoliomanager $TemplateBucket $deploy_env/main.yml pm
+          fi
+
+      - name: Fetch and Push versions
+        run: |
+          amiid=$(python3 /opt/jenkins/scripts/consul/kv_util.py get-parameter-by-key $deploy_env/pm/infra/input/ampmAMI)
+          aminame=$(aws ec2 describe-images --region=$AWS_DEFAULT_REGION --image-ids $amiid --filters Name=owner-id,Values=195724075239 --query Images[*].Name --output text)
+          python3 /opt/jenkins/scripts/consul/kv_util.py push_version $deploy_env cybcube-be $aminame
+
+          uiname=$(python3 /opt/jenkins/scripts/consul/kv_util.py get-parameter-by-key $deploy_env/pm/infra/input/ampmS3bucketfolder)
+          python3 /opt/jenkins/scripts/consul/kv_util.py push_version $deploy_env c2-ui $uiname
+
+          python3 /opt/jenkins/scripts/consul/cf_helper.py update-api-gateway-lambda-variables $deploy_env 
+
+          OSSAPIGATEWAYURL=$(python3 /opt/jenkins/scripts/consul/kv_util.py get-parameter-by-key $deploy_env/core-services/ucs/output/OSSAPIGATEWAYURL)
+          echo $OSSAPIGATEWAYURL
+
+          PMAPIID=$(aws cloudformation describe-stacks --stack-name $deploy_env --query 'Stacks[*].Outputs[?OutputKey==ampmRestApiId]'.OutputValue --output text)
+
+          echo $PMAPIID
+          aws apigateway update-stage --rest-api-id $PMAPIID --stage-name $deploy_env --patch-operations op="replace",path=/variables/PRIVATEAPIGATEWAY,value=$OSSAPIGATEWAYURL
+        shell: bash
+    
+
