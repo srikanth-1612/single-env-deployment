@@ -1,4 +1,4 @@
-name: Deploy S3 Bucket via CloudFormation
+name: Deploy this job by triggering first job
 
 on:
   workflow_call:
